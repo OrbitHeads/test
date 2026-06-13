@@ -1,0 +1,264 @@
+<!-- Written by Paul Clevett -->
+<!-- (C)Copyright Wolf Software Systems Ltd -->
+<!-- https://wolf.uk.com -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WolfStack Console</title>
+    <link rel="stylesheet" href="/css/xterm.min.css" />
+    <script src="/js/vendor/xterm.min.js"></script>
+    <script src="/js/vendor/xterm-addon-fit.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0a0a;
+            color: #f0f0f0;
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 16px;
+            background: #16162a;
+            border-bottom: 1px solid #333;
+            flex-shrink: 0;
+        }
+
+        .toolbar h1 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+
+        .toolbar .status {
+            font-size: 12px;
+            padding: 3px 10px;
+            border-radius: 12px;
+            background: #333;
+            color: #888;
+        }
+
+        .toolbar .status.connected {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+        }
+
+        .toolbar .status.error {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+        }
+
+        #terminal-container {
+            flex: 1;
+            padding: 4px;
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="toolbar">
+        <h1 id="title">💻 WolfStack Console</h1>
+        <span id="status" class="status">Connecting...</span>
+    </div>
+    <div id="terminal-container"></div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const type = params.get('type') || 'lxc';
+        const name = params.get('name') || '';
+        const nodeId = params.get('node_id') || '';
+        const pveNodeId = params.get('pve_node_id') || '';
+        const pveVmid = params.get('pve_vmid') || '';
+
+        const isRemote = !!nodeId;
+        const isPve = (type === 'pve' && pveNodeId && pveVmid);
+        document.title = `Console — ${name}`;
+        document.getElementById('title').textContent = `💻 Console — ${name} (${type})${isRemote ? ' [remote]' : ''}`;
+
+        const statusEl = document.getElementById('status');
+
+        // Create terminal
+        const term = new Terminal({
+            cursorBlink: false,
+            fontSize: 15,
+            fontFamily: '"JetBrains Mono", "Fira Code", "Cascadia Code", "Courier New", monospace',
+            theme: {
+                background: '#0a0a0a',
+                foreground: '#f0f0f0',
+                cursor: '#10b981',
+                selectionBackground: 'rgba(16, 185, 129, 0.3)'
+            },
+            scrollback: 1000
+        });
+        window._term = term; // expose for VR access
+
+        const fitAddon = new FitAddon.FitAddon();
+        term.loadAddon(fitAddon);
+        term.open(document.getElementById('terminal-container'));
+
+        let ws = null;
+        // Batch incoming data and render once per animation frame
+        // to avoid hammering the canvas on low-spec machines
+        let pendingWrites = [];
+        let writeScheduled = false;
+        function scheduleWrite(data) {
+            pendingWrites.push(data);
+            if (!writeScheduled) {
+                writeScheduled = true;
+                requestAnimationFrame(() => {
+                    const batch = pendingWrites.join('');
+                    pendingWrites = [];
+                    writeScheduled = false;
+                    term.write(batch);
+                });
+            }
+        }
+
+        function doFit() {
+            try {
+                fitAddon.fit();
+                // Send new dimensions to server for PTY resize
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows }));
+                }
+            } catch (e) { }
+        }
+        setTimeout(doFit, 100);
+        window.addEventListener('resize', doFit);
+
+        term.writeln('\x1b[33mConnecting to ' + type + ' container: ' + name + (isRemote ? ' (via proxy)' : '') + '...\x1b[0m');
+
+        // WebSocket URL — always connect through local WolfStack server
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        let wsUrl;
+        if (isPve) {
+            // PVE console — connect through WolfStack's PVE WebSocket proxy
+            wsUrl = protocol + '//' + window.location.host + '/ws/pve-console/' + pveNodeId + '/' + pveVmid;
+        } else if (isRemote) {
+            // Remote console — proxy through local WolfStack to remote node
+            wsUrl = protocol + '//' + window.location.host + '/ws/remote-console/' + encodeURIComponent(nodeId) + '/' + type + '/' + encodeURIComponent(name);
+        } else {
+            // Local console
+            wsUrl = protocol + '//' + window.location.host + '/ws/console/' + type + '/' + encodeURIComponent(name);
+        }
+        connectWebSocket(wsUrl);
+
+        function connectWebSocket(url) {
+            ws = new WebSocket(url);
+            window._ws = ws; // expose for VR terminal iframe access
+            ws.binaryType = 'arraybuffer';
+            attachWebSocket(ws);
+        }
+
+        function attachWebSocket(ws) {
+            ws.onopen = () => {
+                statusEl.textContent = 'Connected';
+                statusEl.className = 'status connected';
+                term.writeln('\x1b[32mConnected!\x1b[0m\r\n');
+                doFit();
+                term.focus();
+
+                // Auto-execute command if passed via ?action_id= parameter (from AI actions)
+                // Fetches the command from the server (requires approved status, prevents URL-based injection)
+                const actionId = params.get('action_id');
+                if (actionId && /^[a-zA-Z0-9\-]+$/.test(actionId)) {
+                    fetch('/api/ai/action/command?id=' + encodeURIComponent(actionId))
+                        .then(r => {
+                            if (!r.ok) throw new Error('Action not found or not approved');
+                            return r.json();
+                        })
+                        .then(data => {
+                            if (data.command) {
+                                term.writeln('\x1b[33m🐺 AI Action: ' + data.title + '\x1b[0m');
+                                term.writeln('\x1b[36m$ ' + data.command + '\x1b[0m\r\n');
+                                setTimeout(() => { ws.send(data.command + '\n'); }, 800);
+                            }
+                        })
+                        .catch(e => {
+                            term.writeln('\x1b[31m⚠ Failed to load AI action: ' + e.message + '\x1b[0m\r\n');
+                        });
+                }
+
+                // Same pattern for predictive Inbox "Run" button:
+                // ?proposal_id=<id>&cmd_idx=<n> fetches the proposal's
+                // remediation command from the server (auth-gated;
+                // command comes from the proposal store on disk, not
+                // from URL params, so there's no injection surface)
+                // and writes it to the PTY's stdin.
+                const proposalId = params.get('proposal_id');
+                const cmdIdx = params.get('cmd_idx');
+                if (proposalId && cmdIdx && /^[A-Za-z0-9\-]+$/.test(proposalId) && /^\d+$/.test(cmdIdx)) {
+                    fetch('/api/proposals/' + encodeURIComponent(proposalId) + '/command/' + encodeURIComponent(cmdIdx))
+                        .then(r => {
+                            if (!r.ok) throw new Error('Proposal command not found');
+                            return r.json();
+                        })
+                        .then(data => {
+                            if (data.command) {
+                                term.writeln('\x1b[35m🔮 Predictive Inbox: ' + (data.title || 'remediation') + '\x1b[0m');
+                                term.writeln('\x1b[36m$ ' + data.command + '\x1b[0m\r\n');
+                                setTimeout(() => { ws.send(data.command + '\n'); }, 800);
+                            }
+                        })
+                        .catch(e => {
+                            term.writeln('\x1b[31m⚠ Failed to load predictive command: ' + e.message + '\x1b[0m\r\n');
+                        });
+                }
+            };
+
+            ws.onmessage = (event) => {
+                if (typeof event.data === 'string') {
+                    scheduleWrite(event.data);
+                } else {
+                    scheduleWrite(new TextDecoder().decode(new Uint8Array(event.data)));
+                }
+            };
+
+            ws.onclose = (e) => {
+                if (type === 'upgrade') {
+                    // Disconnect during upgrade is expected — wolfstack
+                    // is restarting. Don't show it as an error.
+                    statusEl.textContent = 'Upgrade complete — service restarting';
+                    statusEl.className = 'status';
+                    term.writeln('\r\n\x1b[33m─────────────────────────────────────────────\x1b[0m');
+                    term.writeln('\r\n\x1b[32m✅ WolfStack service is restarting...\x1b[0m');
+                    term.writeln('\r\n\x1b[36mPlease refresh your browser and log in again.\x1b[0m');
+                    term.writeln('\r\n\x1b[33m─────────────────────────────────────────────\x1b[0m');
+                } else {
+                    statusEl.textContent = 'Disconnected';
+                    statusEl.className = 'status error';
+                    term.writeln('\r\n\x1b[31mConnection closed (code: ' + e.code + ').\x1b[0m');
+                }
+            };
+
+            ws.onerror = () => {
+                statusEl.textContent = 'Error';
+                statusEl.className = 'status error';
+                term.writeln('\r\n\x1b[31mWebSocket connection failed.\x1b[0m');
+            };
+
+            term.onData(data => {
+                if (ws.readyState === WebSocket.OPEN) {
+                    ws.send(data);
+                }
+            });
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,89 @@
+[package]
+name = "wolfstack"
+version = "22.9.48"
+edition = "2024"
+authors = ["Wolf Software Systems Ltd"]
+description = "Server management platform for the Wolf software suite"
+license = "MIT"
+repository = "https://github.com/wolfsoftwaresystemsltd/WolfStack"
+
+[dependencies]
+# Web framework
+actix-web = { version = "4", features = ["openssl"] }
+actix-files = "0.6"
+actix-rt = "2"
+actix-ws = "0.3"
+actix-multipart = "0.7"
+portable-pty = "0.8"
+tokio-tungstenite = { version = "0.24", features = ["native-tls"] }
+native-tls = { version = "0.2", features = ["vendored"] }
+futures = "0.3"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# HTTP client for agent communication
+reqwest = { version = "0.12", features = ["json", "rustls-tls", "rustls-tls-native-roots", "multipart", "stream", "cookies", "blocking"], default-features = false }
+
+# TLS
+openssl = { version = "0.10", features = ["vendored"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "logging", "std", "tls12"] }
+ring = "0.17"
+webpki-roots = "0.26"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# System monitoring
+sysinfo = "0.32"
+
+# CLI
+clap = { version = "4", features = ["derive"] }
+
+# Utilities
+uuid = { version = "1", features = ["v4", "v5"] }
+chrono = { version = "0.4", features = ["serde"] }
+hostname = "0.4"
+libc = "0.2"
+sha1 = "0.10"
+sha2 = "0.10"
+hmac = "0.12"
+data-encoding = "2"
+hex = "0.4"
+base64 = "0.22"
+regex = "1"
+urlencoding = "2"
+rand = "0.8"
+subtle = "2"
+sha-crypt = "0.5"
+yescrypt = { version = "0.1.0-rc.5", features = ["password-hash"] }
+webauthn-rs = { version = "0.5", features = ["danger-allow-state-serialisation", "conditional-ui", "resident-key-support"] }
+lettre = { version = "0.11", features = ["tokio1-rustls-tls", "smtp-transport", "builder"], default-features = false }
+
+# S3 client (pure Rust — works on IBM Power/ppc64le, no C/C++ deps)
+rust-s3 = { version = "0.35", default-features = false, features = ["tokio-rustls-tls"] }
+lz4_flex = "0.11"
+
+# Database editors
+mysql_async = "0.34"
+tokio-postgres = { version = "0.7", features = ["runtime"] }
+deadpool-postgres = "0.14"
+sqlparser = "0.52"
+async-stream = "0.3.6"
+
+[workspace]
+
+[profile.release]
+strip = "debuginfo"
+codegen-units = 1
+lto = "thin"
+
+[[bin]]
+name = "wolfstack"
+path = "src/main.rs"

@@ -1,0 +1,862 @@
+<!-- Written by Paul Clevett -->
+<!-- (C)Copyright Wolf Software Systems Ltd -->
+<!-- https://wolf.uk.com -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WolfStack — Login</title>
+    <meta name="description" content="WolfStack Server Management Platform - Login">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+      <link rel="icon" type="image/png" href="images/wolfstack-icon.png">
+ 
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-card: rgba(17, 24, 43, 0.85);
+            --border: rgba(220, 38, 38, 0.15);
+            --accent: #dc2626;
+            --accent-light: #f87171;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --danger: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* Animated background */
+        .bg-effect {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .bg-effect::before {
+            content: '';
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(220, 38, 38, 0.12) 0%, transparent 70%);
+            top: -200px;
+            right: -200px;
+            animation: float1 15s ease-in-out infinite;
+        }
+
+        .bg-effect::after {
+            content: '';
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.08) 0%, transparent 70%);
+            bottom: -100px;
+            left: -100px;
+            animation: float2 20s ease-in-out infinite;
+        }
+
+        @keyframes float1 {
+
+            0%,
+            100% {
+                transform: translate(0, 0);
+            }
+
+            50% {
+                transform: translate(-80px, 60px);
+            }
+        }
+
+        @keyframes float2 {
+
+            0%,
+            100% {
+                transform: translate(0, 0);
+            }
+
+            50% {
+                transform: translate(60px, -40px);
+            }
+        }
+
+        .login-container {
+            position: relative;
+            z-index: 1;
+            width: 420px;
+            max-width: 90vw;
+        }
+
+        .login-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 48px 40px;
+            backdrop-filter: blur(24px);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+            animation: slideUp 0.6s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo-section {
+            text-align: center;
+            margin-bottom: 36px;
+        }
+
+        .logo-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .logo-section h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--accent-light);
+            letter-spacing: -0.5px;
+        }
+
+        .logo-section p {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-top: 6px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 14px 16px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 15px;
+            transition: all 0.2s;
+            outline: none;
+        }
+
+        .form-group input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+        }
+
+        .form-group input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--accent), #b91c1c);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-family: 'Inter', sans-serif;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s;
+            margin-top: 8px;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 25px rgba(220, 38, 38, 0.35);
+        }
+
+        .login-btn:active {
+            transform: translateY(0);
+        }
+
+        .login-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error-msg {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: #fca5a5;
+            font-size: 13px;
+            margin-bottom: 20px;
+            display: none;
+            animation: shake 0.4s ease-in-out;
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-5px);
+            }
+
+            75% {
+                transform: translateX(5px);
+            }
+        }
+
+        .error-msg.visible {
+            display: block;
+        }
+
+        .login-info {
+            text-align: center;
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .login-info p {
+            color: var(--text-muted);
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .login-info .icon {
+            color: var(--accent-light);
+        }
+
+        .copyright {
+            text-align: center;
+            margin-top: 24px;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .copyright a {
+            color: var(--accent-light);
+            text-decoration: none;
+        }
+
+        .copyright a:hover {
+            text-decoration: underline;
+        }
+
+        /* Loading spinner */
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-effect"></div>
+
+    <div class="login-container">
+        <div class="login-card">
+            <div class="logo-section">
+                <img src="images/wolfstack-logo.png" alt="WolfStack" style="height:48px;">
+                <p>Server Management Platform</p>
+            </div>
+
+            <div id="error-msg" class="error-msg"></div>
+
+            <form id="login-form" onsubmit="handleLogin(event)" style="display:none;">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" placeholder="Username"
+                        autocomplete="username" autofocus required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="Password"
+                        autocomplete="current-password" required>
+                </div>
+                <div class="form-group" id="totp-group" style="display:none;">
+                    <label for="totp_code">Two-Factor Code</label>
+                    <input type="text" id="totp_code" name="totp_code" placeholder="6-digit code from authenticator"
+                        autocomplete="one-time-code" inputmode="numeric" maxlength="6" pattern="[0-9]*"
+                        style="text-align:center;letter-spacing:6px;font-size:20px;">
+                </div>
+                <button type="submit" class="login-btn" id="login-btn">
+                    Sign In
+                </button>
+            </form>
+
+            <!-- Passkey login — visible only when at least one passkey is registered on this server -->
+            <div id="passkey-section" style="display:none; margin-top:14px;">
+                <div style="text-align:center; color:var(--text-muted); font-size:12px; margin-bottom:10px;">— or —</div>
+                <button type="button" class="login-btn" id="passkey-btn" onclick="passkeyLogin()" style="background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.4);">
+                    🔑 Sign in with passkey
+                </button>
+                <div id="passkey-error" class="error-msg" style="margin-top:10px; display:none;"></div>
+            </div>
+
+            <div id="forgot-link" style="display:none; text-align:center; margin-top:16px;">
+                <a href="#" onclick="showForgotForm(); return false;" style="color:var(--text-muted); font-size:13px; text-decoration:none;">
+                    Lost Password?
+                </a>
+            </div>
+
+            <div id="forgot-form" style="display:none;">
+                <div style="margin-bottom:16px;">
+                    <a href="#" onclick="hideForgotForm(); return false;" style="color:var(--text-muted); font-size:13px; text-decoration:none;">&larr; Back to login</a>
+                </div>
+                <div id="forgot-error" class="error-msg"></div>
+                <div id="forgot-success" style="display:none; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); border-radius:8px; padding:12px 16px; color:#6ee7b7; font-size:13px; margin-bottom:16px;"></div>
+                <div id="forgot-step1">
+                    <p style="color:var(--text-secondary); font-size:13px; margin-bottom:16px;">Enter your username. If your account has an email address, we'll send a reset code.</p>
+                    <div class="form-group">
+                        <label for="forgot-username">Username</label>
+                        <input type="text" id="forgot-username" placeholder="Username" required>
+                    </div>
+                    <button onclick="submitForgot()" class="login-btn" id="forgot-btn">Send Reset Code</button>
+                </div>
+                <div id="forgot-step2" style="display:none;">
+                    <p style="color:var(--text-secondary); font-size:13px; margin-bottom:16px;">Enter the reset code from your email and choose a new password.</p>
+                    <div class="form-group">
+                        <label for="reset-token">Reset Code</label>
+                        <input type="text" id="reset-token" placeholder="Paste the code from email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="reset-password">New Password</label>
+                        <input type="password" id="reset-password" placeholder="New password (min 6 characters)" required>
+                    </div>
+                    <button onclick="submitReset()" class="login-btn" id="reset-btn">Reset Password</button>
+                </div>
+            </div>
+
+            <!-- OIDC / SSO providers (populated dynamically) -->
+            <div id="oidc-providers" style="display:none;">
+                <div style="display:flex;align-items:center;gap:12px;margin:20px 0;">
+                    <div style="flex:1;height:1px;background:var(--border);"></div>
+                    <span style="color:var(--text-muted);font-size:12px;text-transform:uppercase;">or</span>
+                    <div style="flex:1;height:1px;background:var(--border);"></div>
+                </div>
+                <div id="oidc-buttons" style="display:flex;flex-direction:column;gap:8px;"></div>
+            </div>
+
+            <div class="login-info" id="login-info" style="display:none;">
+                <p>
+                    <span class="icon">🔒</span> Sign in with your credentials.
+                </p>
+            </div>
+        </div>
+
+        <div style="text-align:center;margin-top:24px;margin-bottom:12px;">
+            <a href="https://github.com/sponsors/wolfsoftwaresystemsltd" target="_blank" rel="noopener"
+               style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;background:rgba(22,163,74,0.15);border:1px solid rgba(22,163,74,0.3);color:#22c55e;font-size:12px;font-weight:600;text-decoration:none;transition:all 0.2s;">
+                <span style="font-size:14px;">❤️</span> Keep WolfStack Free
+            </a>
+        </div>
+        <div class="copyright">
+            &copy; 2026 <a href="https://wolf.uk.com/" target="_blank" rel="noopener">Wolf Software Systems Ltd</a>
+        </div>
+        <div id="login-version" style="text-align:center;font-size:10px;color:rgba(255,255,255,0.25);margin-top:6px;"></div>
+    </div>
+
+    <!-- Startup overlay: shown ONLY when the API doesn't respond
+         within the first ~400ms or fails outright. On a healthy
+         server the first /api/auth/check returns in <100ms and the
+         user never sees the overlay at all — fast logins flow
+         straight to the form / redirect. Adam Cogswell 2026-04-29:
+         the previous version flashed the overlay on every page load
+         (and on post-login redirects when index.html bounced back
+         here) because it started visible and only hid AFTER the
+         probe resolved. -->
+    <div id="wolfstack-starting-overlay" style="position:fixed; inset:0; background:rgba(7,11,20,0.96); z-index:9999; display:none; flex-direction:column; align-items:center; justify-content:center; gap:18px; color:#e2e8f0;">
+        <img src="images/wolfstack-logo.png" alt="WolfStack" style="height:54px; opacity:0.85;">
+        <div class="ws-spinner" style="width:42px; height:42px; border:3px solid rgba(168,85,247,0.25); border-top-color:#a855f7; border-radius:50%; animation: ws-spin 0.9s linear infinite;"></div>
+        <div style="font-size:15px; font-weight:600;">Starting WolfStack on <code id="ws-host" style="background:rgba(168,85,247,0.12); padding:2px 8px; border-radius:6px; color:#c4b5fd;"></code>…</div>
+        <div id="ws-starting-detail" style="font-size:12px; color:rgba(226,232,240,0.55); max-width:420px; text-align:center;">Waiting for the API to come up. Auto-retrying every second.</div>
+    </div>
+    <style>@keyframes ws-spin { to { transform: rotate(360deg); } }</style>
+
+    <script>
+        // Set the hostname in the overlay before anything else runs.
+        document.getElementById('ws-host').textContent = window.location.hostname || 'this server';
+
+        // Gate every other fetch behind an API-reachability probe. The
+        // overlay starts HIDDEN and only appears if the first probe
+        // takes longer than ~400ms — on a healthy server this means
+        // no flash at all, instant form. When a real outage happens
+        // (service restart, long upgrade), the overlay reveals after
+        // the grace window and stays up until the API responds, with
+        // unbounded retry.
+        function wsApiReady() {
+            return new Promise((resolve) => {
+                let attempts = 0;
+                let overlayShown = false;
+                const overlayEl = document.getElementById('wolfstack-starting-overlay');
+                const showOverlay = () => {
+                    if (!overlayShown && overlayEl) {
+                        overlayEl.style.display = 'flex';
+                        overlayShown = true;
+                    }
+                };
+                // Reveal the overlay if the FIRST probe hasn't resolved
+                // by 400ms. Fast servers (<400ms) never trigger this.
+                const graceTimer = setTimeout(showOverlay, 400);
+                const probe = () => {
+                    attempts++;
+                    // 4s per attempt — long enough for a sluggish first
+                    // response, short enough for feedback when wedged.
+                    const ctrl = new AbortController();
+                    const timer = setTimeout(() => ctrl.abort(), 4000);
+                    fetch('/api/auth/check', { signal: ctrl.signal, cache: 'no-store' })
+                        .then(r => {
+                            clearTimeout(timer);
+                            clearTimeout(graceTimer);
+                            // Any HTTP response (even 401) means the
+                            // backend is alive enough to gate auth —
+                            // resolve and run the normal init flow.
+                            // 5xx is the only case we keep retrying
+                            // because that means the backend is up but
+                            // broken, and another second often clears it.
+                            if (r.status >= 500) {
+                                showOverlay();
+                                setTimeout(probe, 1000);
+                            } else {
+                                resolve();
+                            }
+                        })
+                        .catch(() => {
+                            clearTimeout(timer);
+                            // Network error / abort — backend isn't
+                            // reachable. Show overlay (if not already)
+                            // and keep retrying forever, never giving
+                            // up. Detail wording escalates so the user
+                            // knows we're alive but persistent.
+                            showOverlay();
+                            const detail = document.getElementById('ws-starting-detail');
+                            if (detail) {
+                                if (attempts > 60) {
+                                    detail.textContent = attempts + ' attempts. Backend hasn\'t responded yet — we\'ll keep checking forever. If this is unexpected, SSH in and check `systemctl status wolfstack`.';
+                                } else if (attempts > 30) {
+                                    detail.textContent = attempts + ' attempts (~' + Math.round(attempts/60) + ' min). Long upgrades and `cargo build` on slow boxes can take this long. Still retrying.';
+                                } else if (attempts > 10) {
+                                    detail.textContent = 'Connecting… (' + attempts + ' attempts) — service is taking longer than usual. Will keep retrying.';
+                                }
+                            }
+                            setTimeout(probe, 1000);
+                        });
+                };
+                probe();
+            });
+        }
+
+        // When ready, hide overlay (if it ever showed). The init flow
+        // below runs UNGATED so global functions (handleLogin,
+        // handleForgot, etc.) stay at top-level scope — the form's
+        // inline `onsubmit="handleLogin(event)"` can't see them
+        // otherwise. The overlay is purely visual and never blocks
+        // the login submit path. Adam Cogswell 2026-04-29: previous
+        // version wrapped everything in wsRunInitChecks() and broke
+        // login outright.
+        wsApiReady().then(() => {
+            const o = document.getElementById('wolfstack-starting-overlay');
+            if (o) o.style.display = 'none';
+        });
+
+        // Check if direct login is disabled on this node
+        fetch('/api/settings/login-disabled')
+            .then(r => r.json())
+            .then(data => {
+                if (data.login_disabled) {
+                    const card = document.querySelector('.login-card');
+                    card.innerHTML = `
+                        <div class="logo-section">
+                            <img src="images/wolfstack-logo.png" alt="WolfStack" style="height:48px;">
+                            <p>Server Management Platform</p>
+                        </div>
+                        <div style="background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.3);border-radius:12px;padding:24px;text-align:center;">
+                            <div style="font-size:36px;margin-bottom:12px;">🔒</div>
+                            <h3 style="font-size:16px;font-weight:600;margin-bottom:8px;color:var(--text-primary);">Direct Login Disabled</h3>
+                            <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;">
+                                Direct login has been disabled on this server by the administrator.<br>
+                                Access this server via the primary WolfStack dashboard.
+                            </p>
+                        </div>`;
+                } else {
+                    // Login is allowed — reveal the form
+                    document.getElementById('login-form').style.display = '';
+                    document.getElementById('login-info').style.display = '';
+                }
+            })
+            .catch(() => {
+                // If the check fails, show the form anyway (so you can still log in)
+                document.getElementById('login-form').style.display = '';
+                document.getElementById('login-info').style.display = '';
+            });
+
+        // Check if already authenticated
+        fetch('/api/auth/check')
+            .then(r => r.json())
+            .then(data => {
+                if (data.authenticated) {
+                    window.location.href = '/index.html?_=' + Date.now();
+                }
+            });
+
+        // Load OIDC / SSO providers (Enterprise feature)
+        fetch('/api/auth/oidc/providers')
+            .then(r => r.ok ? r.json() : [])
+            .then(providers => {
+                if (Array.isArray(providers) && providers.length > 0) {
+                    const container = document.getElementById('oidc-buttons');
+                    providers.forEach(p => {
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.style.cssText = 'width:100%;padding:12px 16px;border-radius:10px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-size:14px;font-weight:500;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:8px;';
+                        btn.textContent = p.button_label || ('Sign in with ' + p.name);
+                        btn.onmouseenter = () => { btn.style.borderColor = 'var(--accent)'; btn.style.background = 'rgba(220,38,38,0.08)'; };
+                        btn.onmouseleave = () => { btn.style.borderColor = 'var(--border)'; btn.style.background = 'var(--bg-card)'; };
+                        btn.onclick = () => { window.location.href = '/api/auth/oidc/login/' + encodeURIComponent(p.id); };
+                        container.appendChild(btn);
+                    });
+                    document.getElementById('oidc-providers').style.display = '';
+                }
+            })
+            .catch(() => {}); // No OIDC configured — silent fail
+
+        let _needs2fa = false;
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const btn = document.getElementById('login-btn');
+            const errorEl = document.getElementById('error-msg');
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const totp_code = document.getElementById('totp_code') ? document.getElementById('totp_code').value.trim() : '';
+
+            if (!username || !password) {
+                showError('Please enter username and password');
+                return;
+            }
+
+            if (_needs2fa && !totp_code) {
+                showError('Please enter the 6-digit code from your authenticator app');
+                document.getElementById('totp_code').focus();
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Signing in...';
+            errorEl.classList.remove('visible');
+
+            try {
+                const resp = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, totp_code })
+                });
+
+                const data = await resp.json();
+
+                if (data.success) {
+                    btn.innerHTML = '✓ Welcome';
+                    btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                    setTimeout(() => {
+                        window.location.href = '/index.html?_=' + Date.now();
+                    }, 500);
+                } else if (data.requires_2fa) {
+                    // Password correct, need 2FA code
+                    _needs2fa = true;
+                    document.getElementById('totp-group').style.display = 'block';
+                    document.getElementById('totp_code').focus();
+                    btn.disabled = false;
+                    btn.innerHTML = 'Verify & Sign In';
+                    showError('Enter the 6-digit code from your authenticator app');
+                } else {
+                    showError(data.error || 'Invalid username or password');
+                    btn.disabled = false;
+                    btn.innerHTML = _needs2fa ? 'Verify & Sign In' : 'Sign In';
+                    if (_needs2fa) {
+                        document.getElementById('totp_code').value = '';
+                        document.getElementById('totp_code').focus();
+                    } else {
+                        document.getElementById('password').value = '';
+                        document.getElementById('password').focus();
+                    }
+                }
+            } catch (err) {
+                showError('Connection failed: ' + err.message);
+                btn.disabled = false;
+                btn.innerHTML = _needs2fa ? 'Verify & Sign In' : 'Sign In';
+            }
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('error-msg');
+            el.textContent = msg;
+            el.classList.add('visible');
+        }
+
+        // Enter key support
+        document.getElementById('password').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') document.getElementById('login-form').requestSubmit();
+        });
+
+        // Check if SMTP is configured — only show "Lost Password?" if so
+        fetch('/api/auth/smtp-configured')
+            .then(r => r.json())
+            .then(data => {
+                if (data.smtp_configured) {
+                    document.getElementById('forgot-link').style.display = '';
+                }
+                if (data.version) {
+                    document.getElementById('login-version').textContent = 'v' + data.version;
+                }
+            })
+            .catch(() => {});
+
+        // ─── Passkey (WebAuthn) login ─────────────────────────────────
+        // Reveal the passkey button only when (a) the browser supports
+        // WebAuthn, and (b) the server reports at least one passkey is
+        // registered AND the current origin is WebAuthn-eligible. The
+        // /available probe is read-only — it does not create any ceremony
+        // state, so reloading the login page is free.
+        (async () => {
+            if (!window.PublicKeyCredential) return;
+            try {
+                const probe = await fetch('/api/auth/passkey/available');
+                if (!probe.ok) return;
+                const data = await probe.json();
+                if (data && data.available) {
+                    document.getElementById('passkey-section').style.display = '';
+                }
+            } catch (e) { /* ignore */ }
+        })();
+
+        // Decode helpers — WebAuthn API speaks ArrayBuffers; the server JSON uses base64url.
+        function b64uToBuf(s) {
+            s = String(s).replace(/-/g, '+').replace(/_/g, '/');
+            const pad = s.length % 4; if (pad) s += '='.repeat(4 - pad);
+            const bin = atob(s);
+            const buf = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+            return buf.buffer;
+        }
+        function bufToB64u(buf) {
+            const bytes = new Uint8Array(buf);
+            let s = ''; for (const b of bytes) s += String.fromCharCode(b);
+            return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        }
+
+        async function passkeyLogin() {
+            const btn = document.getElementById('passkey-btn');
+            const errEl = document.getElementById('passkey-error');
+            errEl.style.display = 'none';
+            btn.disabled = true;
+            const orig = btn.innerHTML;
+            btn.innerHTML = 'Waiting for passkey…';
+            try {
+                const startResp = await fetch('/api/auth/passkey/login/start', { method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}' });
+                if (!startResp.ok) {
+                    const data = await startResp.json().catch(() => ({}));
+                    throw new Error(data.error || ('Server returned ' + startResp.status));
+                }
+                const { challenge, ceremony_id } = await startResp.json();
+
+                // Convert the challenge JSON's base64url fields into ArrayBuffers
+                // for the WebAuthn API. webauthn-rs delivers `publicKey` as the
+                // outer key in the CTAP-style JSON.
+                const pk = challenge.publicKey || challenge;
+                const opts = { ...pk };
+                opts.challenge = b64uToBuf(opts.challenge);
+                if (Array.isArray(opts.allowCredentials)) {
+                    opts.allowCredentials = opts.allowCredentials.map(c => ({ ...c, id: b64uToBuf(c.id) }));
+                }
+
+                const cred = await navigator.credentials.get({ publicKey: opts, mediation: 'optional' });
+                if (!cred) throw new Error('No credential returned');
+
+                // Marshal credential back into JSON (base64url binary fields)
+                const r = cred.response;
+                const credJson = {
+                    id: cred.id,
+                    rawId: bufToB64u(cred.rawId),
+                    type: cred.type,
+                    response: {
+                        authenticatorData: bufToB64u(r.authenticatorData),
+                        clientDataJSON: bufToB64u(r.clientDataJSON),
+                        signature: bufToB64u(r.signature),
+                        userHandle: r.userHandle ? bufToB64u(r.userHandle) : null,
+                    },
+                    extensions: cred.getClientExtensionResults ? cred.getClientExtensionResults() : {},
+                };
+
+                const finishResp = await fetch('/api/auth/passkey/login/finish', {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({ ceremony_id, response: credJson }),
+                });
+                if (!finishResp.ok) {
+                    const data = await finishResp.json().catch(() => ({}));
+                    throw new Error(data.error || ('Server returned ' + finishResp.status));
+                }
+                window.location.href = '/';
+            } catch (err) {
+                errEl.textContent = (err && err.message) || 'Passkey login failed';
+                errEl.style.display = '';
+                btn.disabled = false;
+                btn.innerHTML = orig;
+            }
+        }
+
+        function showForgotForm() {
+            document.getElementById('login-form').style.display = 'none';
+            document.getElementById('login-info').style.display = 'none';
+            document.getElementById('forgot-link').style.display = 'none';
+            document.getElementById('forgot-form').style.display = '';
+            document.getElementById('forgot-step1').style.display = '';
+            document.getElementById('forgot-step2').style.display = 'none';
+            document.getElementById('forgot-error').classList.remove('visible');
+            document.getElementById('forgot-success').style.display = 'none';
+            document.getElementById('forgot-username').focus();
+        }
+
+        function hideForgotForm() {
+            document.getElementById('forgot-form').style.display = 'none';
+            document.getElementById('login-form').style.display = '';
+            document.getElementById('login-info').style.display = '';
+            document.getElementById('forgot-link').style.display = '';
+        }
+
+        async function submitForgot() {
+            const username = document.getElementById('forgot-username').value.trim();
+            if (!username) {
+                showForgotError('Please enter your username');
+                return;
+            }
+            const btn = document.getElementById('forgot-btn');
+            btn.disabled = true;
+            btn.textContent = 'Sending...';
+            try {
+                const resp = await fetch('/api/auth/forgot-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username })
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    document.getElementById('forgot-step1').style.display = 'none';
+                    document.getElementById('forgot-step2').style.display = '';
+                    document.getElementById('forgot-success').style.display = 'block';
+                    document.getElementById('forgot-success').textContent = data.message;
+                    document.getElementById('reset-token').focus();
+                } else {
+                    showForgotError(data.error || 'Failed to send reset email');
+                }
+            } catch (e) {
+                showForgotError('Connection failed: ' + e.message);
+            }
+            btn.disabled = false;
+            btn.textContent = 'Send Reset Code';
+        }
+
+        async function submitReset() {
+            const token = document.getElementById('reset-token').value.trim();
+            const password = document.getElementById('reset-password').value;
+            if (!token || !password) {
+                showForgotError('Please enter the reset code and new password');
+                return;
+            }
+            if (password.length < 6) {
+                showForgotError('Password must be at least 6 characters');
+                return;
+            }
+            const btn = document.getElementById('reset-btn');
+            btn.disabled = true;
+            btn.textContent = 'Resetting...';
+            try {
+                const resp = await fetch('/api/auth/reset-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token, password })
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    document.getElementById('forgot-error').classList.remove('visible');
+                    document.getElementById('forgot-success').style.display = 'block';
+                    document.getElementById('forgot-success').textContent = data.message;
+                    document.getElementById('forgot-step2').style.display = 'none';
+                    setTimeout(() => hideForgotForm(), 2000);
+                } else {
+                    showForgotError(data.error || 'Failed to reset password');
+                }
+            } catch (e) {
+                showForgotError('Connection failed: ' + e.message);
+            }
+            btn.disabled = false;
+            btn.textContent = 'Reset Password';
+        }
+
+        function showForgotError(msg) {
+            const el = document.getElementById('forgot-error');
+            el.textContent = msg;
+            el.classList.add('visible');
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,400 @@
+<!-- Written by Paul Clevett -->
+<!-- (C)Copyright Wolf Software Systems Ltd -->
+<!-- https://wolf.uk.com -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WolfStack — VNC Console</title>
+    <script src="https://esm.sh/@novnc/novnc@1.4.0/lib/rfb.js" type="module"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            background: #0a0e1a;
+            color: #e0e0e0;
+            font-family: 'Inter', -apple-system, sans-serif;
+            height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .toolbar {
+            background: #111827;
+            border-bottom: 1px solid #1f2937;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        .toolbar h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #e5e7eb;
+        }
+
+        .toolbar .badge {
+            background: #065f46;
+            color: #6ee7b7;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .toolbar .badge.disconnected {
+            background: #7f1d1d;
+            color: #fca5a5;
+        }
+
+        .toolbar .spacer {
+            flex: 1;
+        }
+
+        .toolbar button {
+            background: #1f2937;
+            border: 1px solid #374151;
+            color: #d1d5db;
+            padding: 4px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .toolbar button:hover {
+            background: #374151;
+        }
+
+        #vnc-container {
+            flex: 1;
+            overflow: hidden;
+            background: #000;
+            width: 100%;
+            min-height: 0;
+        }
+
+        .status-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #9ca3af;
+        }
+
+        .status-overlay .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid #374151;
+            border-top-color: #60a5fa;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 12px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .ctrl-alt-del {
+            background: #7f1d1d !important;
+            border-color: #991b1b !important;
+            color: #fca5a5 !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="toolbar">
+        <h3 id="vm-name">VNC Console</h3>
+        <span id="status-badge" class="badge disconnected">Connecting...</span>
+        <div class="spacer"></div>
+        <button onclick="sendCtrlAltDel()" class="ctrl-alt-del" title="Send Ctrl+Alt+Del">Ctrl+Alt+Del</button>
+        <button onclick="toggleKeyboard()" id="kb-btn" title="Show on-screen keyboard">Keyboard</button>
+        <button onclick="toggleFullscreen()">Fullscreen</button>
+    </div>
+    <!-- Hidden textarea to trigger iOS/mobile soft keyboard -->
+    <textarea id="mobile-kb-input" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false"
+        style="position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0;font-size:16px;"></textarea>
+    <div id="vnc-container" style="position: relative;">
+        <div class="status-overlay" id="status-overlay">
+            <div class="spinner"></div>
+            <p>Connecting to VNC console...</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import RFB from 'https://esm.sh/@novnc/novnc@1.4.0/lib/rfb.js';
+
+        const params = new URLSearchParams(window.location.search);
+        const vmName = params.get('name') || 'unknown';
+        const wsPort = parseInt(params.get('port') || '0');
+        const host = params.get('host') || window.location.hostname;
+        const wsPath = params.get('ws_path') || '';
+        const vncTicket = params.get('ticket') || '';
+
+        document.getElementById('vm-name').textContent = vmName;
+        document.title = `${vmName} — VNC Console`;
+
+        let rfb = null;
+        window.rfb = null; // expose for VR terminal access
+
+        if (wsPath) {
+            // WolfStack-proxied VNC. resizeSession asks the server to
+            // resize its display to match our viewport — desirable for
+            // container VNC (TigerVNC honours it), avoids the
+            // scale-down + centre-and-clip dance that hides the top
+            // edge of the desktop. Disabled for Proxmox VMs because
+            // Windows 11 applies 125%+ display scaling after a resize,
+            // mangling mouse coordinates.
+            //
+            // Heuristic: container VNC paths (/ws/container-vnc/... or
+            // remote-console with -vnc ctype) want resize; everything
+            // else (Proxmox /ws/pve-vnc/...) does not.
+            const isContainerVnc = /\/(container-vnc|lxc-vnc|docker-vnc|pct-vnc)\//.test(wsPath);
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+            const wsUrl = `${wsProtocol}://${window.location.host}${wsPath}`;
+            connectProxiedVNC(wsUrl, vncTicket, isContainerVnc);
+        } else if (wsPort) {
+            // Native QEMU VMs — proxy through WolfStack to avoid mixed-content issues
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+            const proxyUrl = `${wsProtocol}://${window.location.host}/ws/vm-vnc/${encodeURIComponent(vmName)}`;
+            connectProxiedVNC(proxyUrl, '', true);
+        } else {
+            document.getElementById('status-overlay').innerHTML =
+                '<p style="color:#fca5a5;">No VNC connection parameters specified.<br>The VM may not be running.</p>';
+        }
+
+        function connectProxiedVNC(wsUrl, ticket, resizeSession) {
+            const container = document.getElementById('vnc-container');
+            try {
+                const opts = {
+                    scaleViewport: true,
+                    resizeSession: resizeSession,
+                    clipViewport: true,
+                    showDotCursor: true,
+                };
+                if (ticket) {
+                    opts.credentials = { password: ticket };
+                }
+                rfb = new RFB(container, wsUrl, opts);
+                window.rfb = rfb;
+
+                rfb.addEventListener('connect', () => {
+                    document.getElementById('status-badge').textContent = 'Connected';
+                    document.getElementById('status-badge').className = 'badge';
+                    const overlay = document.getElementById('status-overlay');
+                    if (overlay) overlay.remove();
+                    window._vncConnected = true;
+                });
+
+                rfb.addEventListener('disconnect', (e) => {
+                    document.getElementById('status-badge').textContent = 'Disconnected';
+                    document.getElementById('status-badge').className = 'badge disconnected';
+                    if (!e.detail.clean) {
+                        const c = document.getElementById('vnc-container');
+                        c.innerHTML = `
+                            <div class="status-overlay">
+                                <p style="color:#fca5a5;">Connection lost.<br>
+                                <button onclick="location.reload()"
+                                    style="margin-top:12px; padding:6px 16px; background:#1f2937; border:1px solid #374151; color:#d1d5db; border-radius:4px; cursor:pointer;">
+                                    Reconnect
+                                </button></p>
+                            </div>`;
+                    }
+                });
+
+                rfb.addEventListener('credentialsrequired', () => {
+                    if (ticket) {
+                        rfb.sendCredentials({ password: ticket });
+                    } else {
+                        rfb.sendCredentials({ password: prompt('VNC Password:') || '' });
+                    }
+                });
+
+            } catch (e) {
+                document.getElementById('status-overlay').innerHTML =
+                    `<p style="color:#fca5a5;">Failed to connect: ${e.message}</p>`;
+            }
+        }
+
+        function connectVNC(host, port) {
+            const container = document.getElementById('vnc-container');
+            const isRemote = host !== window.location.hostname;
+
+            if (isRemote) {
+                // Remote host — try wss first, fall back to ws
+                const wssUrl = `wss://${host}:${port}`;
+                const wsUrl = `ws://${host}:${port}`;
+                let settled = false;
+
+                // Try wss first
+                try {
+                    const testWs = new WebSocket(wssUrl);
+                    const fallbackTimeout = setTimeout(() => {
+                        if (!settled) {
+                            settled = true;
+                            try { testWs.close(); } catch (e) { }
+                            doConnectVNC(wsUrl, container);
+                        }
+                    }, 3000);
+
+                    testWs.onopen = () => {
+                        if (!settled) {
+                            settled = true;
+                            clearTimeout(fallbackTimeout);
+                            testWs.close();
+                            doConnectVNC(wssUrl, container);
+                        }
+                    };
+
+                    testWs.onerror = () => {
+                        if (!settled) {
+                            settled = true;
+                            clearTimeout(fallbackTimeout);
+                            doConnectVNC(wsUrl, container);
+                        }
+                    };
+                } catch (e) {
+                    doConnectVNC(wsUrl, container);
+                }
+            } else {
+                // Local — QEMU's built-in WebSocket does not support TLS, always use ws://
+                doConnectVNC(`ws://${host}:${port}`, container);
+            }
+        }
+
+        function doConnectVNC(url, container) {
+            try {
+                rfb = new RFB(container, url, {
+                    scaleViewport: true,
+                    resizeSession: true,
+                    clipViewport: true,
+                });
+                window.rfb = rfb;
+
+                rfb.addEventListener('connect', () => {
+                    document.getElementById('status-badge').textContent = 'Connected';
+                    document.getElementById('status-badge').className = 'badge';
+                    const overlay = document.getElementById('status-overlay');
+                    if (overlay) overlay.remove();
+                    window._vncConnected = true;
+                });
+
+                rfb.addEventListener('disconnect', (e) => {
+                    document.getElementById('status-badge').textContent = 'Disconnected';
+                    document.getElementById('status-badge').className = 'badge disconnected';
+                    if (!e.detail.clean) {
+                        const container = document.getElementById('vnc-container');
+                        container.innerHTML = `
+                            <div class="status-overlay">
+                                <p style="color:#fca5a5;">Connection lost.<br>
+                                <button onclick="location.reload()"
+                                    style="margin-top:12px; padding:6px 16px; background:#1f2937; border:1px solid #374151; color:#d1d5db; border-radius:4px; cursor:pointer;">
+                                    Reconnect
+                                </button></p>
+                            </div>`;
+                    }
+                });
+
+                rfb.addEventListener('credentialsrequired', () => {
+                    rfb.sendCredentials({ password: prompt('VNC Password:') || '' });
+                });
+
+            } catch (e) {
+                document.getElementById('status-overlay').innerHTML =
+                    `<p style="color:#fca5a5;">Failed to connect: ${e.message}</p>`;
+            }
+        }
+
+        // Re-scale VNC on window resize
+        window.addEventListener('resize', () => {
+            if (rfb) {
+                rfb.scaleViewport = true;
+            }
+        });
+
+        // Expose to global scope for toolbar buttons
+        window.sendCtrlAltDel = function () {
+            if (rfb) rfb.sendCtrlAltDel();
+        };
+
+        window.toggleFullscreen = function () {
+            const el = document.documentElement;
+            if (!document.fullscreenElement) {
+                el.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        };
+
+        // Mobile soft keyboard support (iOS/Android)
+        const kbInput = document.getElementById('mobile-kb-input');
+        let kbOpen = false;
+
+        window.toggleKeyboard = function () {
+            if (kbOpen) {
+                kbInput.blur();
+                kbOpen = false;
+                document.getElementById('kb-btn').style.background = '';
+            } else {
+                kbInput.focus();
+                kbOpen = true;
+                document.getElementById('kb-btn').style.background = '#065f46';
+            }
+        };
+
+        kbInput.addEventListener('blur', () => {
+            kbOpen = false;
+            document.getElementById('kb-btn').style.background = '';
+        });
+
+        // Forward key events from the hidden textarea to noVNC
+        kbInput.addEventListener('keydown', (e) => {
+            if (!rfb) return;
+            // Let noVNC handle the key via its own canvas focus for special keys
+            const key = e.key;
+            if (key === 'Enter') rfb.sendKey(0xFF0D);
+            else if (key === 'Backspace') rfb.sendKey(0xFF08);
+            else if (key === 'Tab') rfb.sendKey(0xFF09);
+            else if (key === 'Escape') rfb.sendKey(0xFF1B);
+            else if (key === 'ArrowLeft') rfb.sendKey(0xFF51);
+            else if (key === 'ArrowUp') rfb.sendKey(0xFF52);
+            else if (key === 'ArrowRight') rfb.sendKey(0xFF53);
+            else if (key === 'ArrowDown') rfb.sendKey(0xFF54);
+            else if (key === 'Delete') rfb.sendKey(0xFFFF);
+            else if (key === 'Home') rfb.sendKey(0xFF50);
+            else if (key === 'End') rfb.sendKey(0xFF57);
+            else return; // printable chars handled via input event
+            e.preventDefault();
+        });
+
+        // Capture printable characters via input event (works on iOS)
+        kbInput.addEventListener('input', (e) => {
+            if (!rfb) return;
+            const data = e.data;
+            if (data) {
+                for (const ch of data) {
+                    const code = ch.codePointAt(0);
+                    rfb.sendKey(code, null, true);  // press
+                    rfb.sendKey(code, null, false);  // release
+                }
+            }
+            // Clear the textarea so it stays ready for more input
+            kbInput.value = '';
+        });
+    </script>
+</body>
+
+</html>
