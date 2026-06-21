@@ -983,8 +983,8 @@ fi
 # Requires WOLFNET_SRC_DIR to be set if building from source.
 build_or_download_wolfnet() {
     # Try prebuilt first
-    if download_prebuilt "wolfsoftwaresystemsltd/WolfNet" "wolfnet" "/usr/local/bin/wolfnet"; then
-        download_prebuilt "wolfsoftwaresystemsltd/WolfNet" "wolfnetctl" "/usr/local/bin/wolfnetctl" || true
+    if download_prebuilt "orbitheads/WolfNet" "wolfnet" "/usr/local/bin/wolfnet"; then
+        download_prebuilt "orbitheads/WolfNet" "wolfnetctl" "/usr/local/bin/wolfnetctl" || true
         WOLFNET_BUILT=true
         return 0
     fi
@@ -1044,7 +1044,7 @@ if command -v wolfnet >/dev/null 2>&1 && systemctl is-active --quiet wolfnet 2>/
     WOLFNET_SRC_DIR="${CUSTOM_INSTALL_DIR:-/opt}/wolfnet-src"
     if [ ! -d "$WOLFNET_SRC_DIR" ]; then
         echo "  WolfNet source not found — cloning..."
-        git clone https://github.com/wolfsoftwaresystemsltd/WolfNet.git "$WOLFNET_SRC_DIR"
+        git clone https://github.com/orbitheads/WolfNet.git "$WOLFNET_SRC_DIR"
         git config --global --add safe.directory "$WOLFNET_SRC_DIR" 2>/dev/null || true
     fi
 
@@ -1058,7 +1058,7 @@ if command -v wolfnet >/dev/null 2>&1 && systemctl is-active --quiet wolfnet 2>/
     if [ -f "$WOLFNET_SRC_DIR/Cargo.toml" ] && ! grep -q 'name = "wolfnet"' "$WOLFNET_SRC_DIR/Cargo.toml"; then
         echo "  Replacing old WolfScale clone with standalone WolfNet repo..."
         rm -rf "$WOLFNET_SRC_DIR"
-        git clone https://github.com/wolfsoftwaresystemsltd/WolfNet.git "$WOLFNET_SRC_DIR"
+        git clone https://github.com/orbitheads/WolfNet.git "$WOLFNET_SRC_DIR"
         git config --global --add safe.directory "$WOLFNET_SRC_DIR" 2>/dev/null || true
     fi
 
@@ -1079,7 +1079,7 @@ elif command -v wolfnet >/dev/null 2>&1 && [ -f "/etc/systemd/system/wolfnet.ser
     WOLFNET_SRC_DIR="${CUSTOM_INSTALL_DIR:-/opt}/wolfnet-src"
     if [ ! -d "$WOLFNET_SRC_DIR" ]; then
         echo "  WolfNet source not found — cloning..."
-        git clone https://github.com/wolfsoftwaresystemsltd/WolfNet.git "$WOLFNET_SRC_DIR"
+        git clone https://github.com/orbitheads/WolfNet.git "$WOLFNET_SRC_DIR"
         git config --global --add safe.directory "$WOLFNET_SRC_DIR" 2>/dev/null || true
     fi
 
@@ -1093,7 +1093,7 @@ elif command -v wolfnet >/dev/null 2>&1 && [ -f "/etc/systemd/system/wolfnet.ser
     if [ -f "$WOLFNET_SRC_DIR/Cargo.toml" ] && ! grep -q 'name = "wolfnet"' "$WOLFNET_SRC_DIR/Cargo.toml"; then
         echo "  Replacing old WolfScale clone with standalone WolfNet repo..."
         rm -rf "$WOLFNET_SRC_DIR"
-        git clone https://github.com/wolfsoftwaresystemsltd/WolfNet.git "$WOLFNET_SRC_DIR"
+        git clone https://github.com/orbitheads/WolfNet.git "$WOLFNET_SRC_DIR"
         git config --global --add safe.directory "$WOLFNET_SRC_DIR" 2>/dev/null || true
     fi
 
@@ -1158,7 +1158,7 @@ else
             git config --global --add safe.directory "$WOLFNET_SRC_DIR" 2>/dev/null || true
             cd "$WOLFNET_SRC_DIR" && git fetch origin && git reset --hard origin/main
         else
-            git clone https://github.com/wolfsoftwaresystemsltd/WolfNet.git "$WOLFNET_SRC_DIR"
+            git clone https://github.com/orbitheads/WolfNet.git "$WOLFNET_SRC_DIR"
             git config --global --add safe.directory "$WOLFNET_SRC_DIR" 2>/dev/null || true
             cd "$WOLFNET_SRC_DIR"
         fi
@@ -1381,14 +1381,14 @@ if [ -d "$INSTALL_DIR" ]; then
         echo "  ⚠ Git repo corrupted — re-cloning..."
         cd /
         rm -rf "$INSTALL_DIR"
-        git clone -b $BRANCH https://github.com/wolfsoftwaresystemsltd/WolfStack.git "$INSTALL_DIR"
+        git clone -b $BRANCH https://github.com/orbitheads/WolfStack.git "$INSTALL_DIR"
         cd "$INSTALL_DIR"
     else
         git checkout -B $BRANCH origin/$BRANCH
         git reset --hard origin/$BRANCH
     fi
 else
-    git clone -b $BRANCH https://github.com/wolfsoftwaresystemsltd/WolfStack.git "$INSTALL_DIR"
+    git clone -b $BRANCH https://github.com/orbitheads/WolfStack.git "$INSTALL_DIR"
     cd "$INSTALL_DIR"
 fi
 
@@ -1417,7 +1417,7 @@ fi
 
 # Try prebuilt binary first — saves disk space, memory, and build time
 WOLFSTACK_PREBUILT=false
-if download_prebuilt "wolfsoftwaresystemsltd/WolfStack" "wolfstack" "/usr/local/bin/wolfstack"; then
+if download_prebuilt "orbitheads/WolfStack" "wolfstack" "/usr/local/bin/wolfstack"; then
     WOLFSTACK_PREBUILT=true
 else
     # Fall back to building from source
@@ -1519,7 +1519,7 @@ echo "✓ wolfstack installed to /usr/local/bin/wolfstack"
 # offline. We fetch from the same branch this setup.sh came from. If the
 # fetch fails we still write a minimal stub so the user has *something*.
 WS_UNINSTALL_DEST="/usr/local/bin/wolfstack-uninstall"
-WS_UNINSTALL_URL="https://raw.githubusercontent.com/wolfsoftwaresystemsltd/WolfStack/${BRANCH}/uninstall.sh"
+WS_UNINSTALL_URL="https://raw.githubusercontent.com/orbitheads/test/${BRANCH}/uninstall.sh"
 WS_UNINSTALL_FETCHED=false
 if command -v curl >/dev/null 2>&1; then
     if curl -fsSL --connect-timeout 10 --max-time 60 -o "${WS_UNINSTALL_DEST}.new" "$WS_UNINSTALL_URL" 2>/dev/null; then
@@ -1563,7 +1563,7 @@ if [ "$PURGE" = true ]; then
     echo "Purged /etc/wolfstack and /var/log/wolfstack."
 fi
 echo "Stub uninstall complete. For a full uninstall (WolfNet/WolfProxy/etc.)"
-echo "fetch the full script: curl -sSL https://raw.githubusercontent.com/wolfsoftwaresystemsltd/WolfStack/master/uninstall.sh | sudo bash"
+echo "fetch the full script: curl -sSL https://raw.githubusercontent.com/orbitheads/test/master/uninstall.sh | sudo bash"
 WSUNINSTALL_STUB
     chmod 0755 "$WS_UNINSTALL_DEST"
     echo "⚠ Could not fetch full uninstall.sh — wrote offline stub to $WS_UNINSTALL_DEST"
@@ -1591,7 +1591,7 @@ fi
 systemctl stop wolfusb 2>/dev/null || true
 
 # Install/update wolfusb binary via its official setup.sh (handles platform detection)
-if curl -fsSL https://raw.githubusercontent.com/wolfsoftwaresystemsltd/wolfusb/main/setup.sh | bash; then
+if curl -fsSL https://raw.githubusercontent.com/orbitheads/wolfusb/main/setup.sh | bash; then
     echo "  ✓ WolfUSB binary installed"
 else
     echo "  ⚠ WolfUSB install failed (non-critical)"
