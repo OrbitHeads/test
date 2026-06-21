@@ -12,7 +12,7 @@ The flagship management dashboard from [Wolf Software Systems](https://wolf.uk.c
 ## Install
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/wolfsoftwaresystemsltd/WolfStack/master/setup.sh | sudo bash
+curl -sSL https://raw.githubusercontent.com/orbitheads/test/master/setup.sh | sudo bash
 ```
 
 Then open `http://your-server:8553` and log in with your Linux system credentials.
