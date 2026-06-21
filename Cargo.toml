@@ -5,7 +5,7 @@ edition = "2024"
 authors = ["Wolf Software Systems Ltd"]
 description = "Server management platform for the Wolf software suite"
 license = "MIT"
-repository = "https://github.com/wolfsoftwaresystemsltd/WolfStack"
+repository = "https://github.com/orbitheads/test"
 
 [dependencies]
 # Web framework
